@@ -332,7 +332,6 @@ config  HUAWEI_KERNEL
 
 config  JESUS_PHONE
         depends on ARCH_MSM7X30
-        depends on GK_OVERCLOCK
         default y
 	bool  "MSM7x30 High Freq CPU OVERCLOCK"
         help
