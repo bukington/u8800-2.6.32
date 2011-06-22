@@ -76,15 +76,6 @@ struct clkctl_acpu_speed {
 static struct clock_state drv_state = { 0 };
 
 static struct cpufreq_frequency_table freq_table[] = {
-#ifndef CONFIG_GK_OVERCLOCK
-	{ 0, 122880 },
-	{ 1, 245760 },
-	{ 2, 368640 },
-	{ 3, 768000 },
-	/* 806.4MHz is updated to 1017MHz at runtime for MSM8x55. */
-	{ 4, 806400 },
-	{ 5, CPUFREQ_TABLE_END },
-#else
 	{ 0, 122880 },
 	{ 1, 245760 },
 	{ 2, 368640 },
@@ -110,8 +101,6 @@ static struct cpufreq_frequency_table freq_table[] = {
 	{ 16, 1804800 },
 	{ 17, CPUFREQ_TABLE_END },
 #endif
-
-#endif
 };
 
 /* Use negative numbers for sources that can't be enabled/disabled */
@@ -124,18 +113,6 @@ static struct cpufreq_frequency_table freq_table[] = {
  * know all the h/w requirements.
  */
 static struct clkctl_acpu_speed acpu_freq_tbl[] = {
-#ifndef CONFIG_GK_OVERCLOCK
-	{ 24576,  SRC_LPXO, 0, 0,  30720,  900, VDD_RAW(900), LOW },
-	{ 61440,  PLL_3,    5, 11, 61440,  900, VDD_RAW(900), LOW },
-	{ 122880, PLL_3,    5, 5,  61440,  900, VDD_RAW(900), LOW },
-	{ 184320, PLL_3,    5, 4,  61440,  900, VDD_RAW(900), LOW },
-	{ MAX_AXI_KHZ, SRC_AXI, 1, 0, 61440, 900, VDD_RAW(900), LOW },
-	{ 245760, PLL_3,    5, 2,  61440,  900, VDD_RAW(900), LOW },
-	{ 368640, PLL_3,    5, 1,  122800, 900, VDD_RAW(900), LOW },
-	{ 768000, PLL_1,    2, 0,  153600, 1050, VDD_RAW(1050), NOMINAL },
-	{ 806400, PLL_2,    3, 0,  192000, 1100, VDD_RAW(1100), NOMINAL },
-	{ 0 }
-#else
 	{ 24576,  SRC_LPXO, 0, 0,  30720,  900, VDD_RAW(850), LOW },
 	{ 61440,  PLL_3,    5, 11, 61440,  900, VDD_RAW(900), LOW },
 	{ 122880, PLL_3,    5, 5,  61440,  900, VDD_RAW(900), LOW },
@@ -160,7 +137,6 @@ static struct clkctl_acpu_speed acpu_freq_tbl[] = {
 	{ 1804800, PLL_2,   3, 0,  192000, 1450, VDD_RAW(1450), NOMINAL },
 #endif
 	{ 0 }
-#endif
 };
 
 #define POWER_COLLAPSE_KHZ MAX_AXI_KHZ
@@ -446,18 +422,6 @@ static void __init lpj_init(void)
 /* Update frequency tables for a 1017MHz PLL2. */
 void __init pll2_1024mhz_fixup(void)
 {
-#ifndef CONFIG_GK_OVERCLOCK
-	if (acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-2].acpu_clk_khz != 806400
-		  || freq_table[ARRAY_SIZE(freq_table)-2].frequency != 806400) {
-		pr_err("Frequency table fixups for PLL2 rate failed.\n");
-		BUG();
-	}
-	acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-2].acpu_clk_khz = 1017000;
-	acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-2].vdd_mv = 1200;
-	acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-2].vdd_raw = VDD_RAW(1200);
-	acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-2].msmc1 = HIGH;
-	freq_table[ARRAY_SIZE(freq_table)-2].frequency = 1017000;
-#else
 #ifdef CONFIG_JESUS_PHONE
 	if (acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-9].acpu_clk_khz != 806400
 		  || freq_table[ARRAY_SIZE(freq_table)-9].frequency != 806400) {
@@ -483,7 +447,6 @@ void __init pll2_1024mhz_fixup(void)
 	acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-9].vdd_raw = VDD_RAW(1200);
 	acpu_freq_tbl[ARRAY_SIZE(acpu_freq_tbl)-9].msmc1 = HIGH;
 	freq_table[ARRAY_SIZE(freq_table)-9].frequency = 1017000;
-#endif
 #endif
 }
 

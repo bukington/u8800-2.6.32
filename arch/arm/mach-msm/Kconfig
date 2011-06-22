@@ -330,13 +330,6 @@ config  HUAWEI_KERNEL
 	bool  "HUAWEI BSP"
 	default n
 
-config  GK_OVERCLOCK
-        depends on ARCH_MSM7X30
-        default y
-	bool  "MSM7x30 CPU OVERCLOCK"
-        help
-         Support for the Qualcomm MSM7x30 MAX 1.5Ghz Cpu Overclock
-
 config  JESUS_PHONE
         depends on ARCH_MSM7X30
         depends on GK_OVERCLOCK
