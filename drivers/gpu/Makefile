@@ -1,3 +1,2 @@
 obj-y			+= drm/ vga/
-obj-y			+= msm/
-#kgsl_adreno205/
+obj-$(CONFIG_MSM_KGSL)	+= msm/

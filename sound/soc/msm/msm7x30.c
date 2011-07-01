@@ -89,6 +89,7 @@ static int msm_v_call_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 	int start = ucontrol->value.integer.value[0];
+	
 	if (start)
 		broadcast_event(AUDDEV_EVT_START_VOICE, DEVICE_IGNORE,
 							SESSION_IGNORE);
@@ -117,9 +118,10 @@ static int msm_v_mute_get(struct snd_kcontrol *kcontrol,
 
 static int msm_v_mute_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
-{
+{  
 	int dir = ucontrol->value.integer.value[0];
 	int mute = ucontrol->value.integer.value[1];
+	
 	return msm_set_voice_mute(dir, mute);
 }
 
@@ -142,10 +144,10 @@ static int msm_v_volume_get(struct snd_kcontrol *kcontrol,
 
 static int msm_v_volume_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
-{
+{  
 	int dir = ucontrol->value.integer.value[0];
 	int volume = ucontrol->value.integer.value[1];
-
+	
 	return msm_set_voice_vol(dir, volume);
 }
 
@@ -170,13 +172,14 @@ static int msm_volume_get(struct snd_kcontrol *kcontrol,
 static int msm_volume_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
+	
+  
 	int ret = 0;
 	int session_id = ucontrol->value.integer.value[0];
 	int volume = ucontrol->value.integer.value[1];
 	int factor = ucontrol->value.integer.value[2];
 	u32 session_mask = 0;
-
-
+	
 	if (factor > 10000)
 		return -EINVAL;
 
@@ -225,7 +228,8 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 	struct msm_snddev_info *tx_dev_info;
 	int set = ucontrol->value.integer.value[2];
 	u32 session_mask;
-
+  
+	
 	if (!set)
 		return -EPERM;
 	/* Rx Device Routing */
@@ -242,10 +246,7 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 		MM_ERR("First Dev is supposed to be RX\n");
 		return -EFAULT;
 	}
-
-	MM_DBG("route cfg %d STREAM_VOICE_RX type\n",
-		rx_dev_id);
-
+	
 	msm_set_voc_route(rx_dev_info, AUDIO_ROUTE_STREAM_VOICE_RX,
 				rx_dev_id);
 
@@ -256,6 +257,14 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 
 	/* Tx Device Routing */
 	tx_dev_id = ucontrol->value.integer.value[1];
+	
+	if (tx_dev_id == 3) {
+	  // Not sure if this is needed, but it works :)
+	  pr_info("ksatta: msm_voice_put() tx_dev_id is 3 (headset mic), changing to 10(speakerphone mic).");
+	  
+	  tx_dev_id = 10;
+	}
+
 	tx_dev_info = audio_dev_ctrl_find_dev(tx_dev_id);
 
 	if (IS_ERR(tx_dev_info)) {
@@ -268,10 +277,10 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 		MM_ERR("Second Dev is supposed to be Tx\n");
 		return -EFAULT;
 	}
-
-	MM_DBG("route cfg %d %d type\n",
-		tx_dev_id, AUDIO_ROUTE_STREAM_VOICE_TX);
-
+	
+	//pr_info("ksatta: msm_voice_put() tx_dev_id:%Lu rx_dev_id:%Lu \n", (long long unsigned int) tx_dev_id, (long long unsigned int) rx_dev_id);
+	
+	
 	msm_set_voc_route(tx_dev_info, AUDIO_ROUTE_STREAM_VOICE_TX,
 				tx_dev_id);
 
@@ -315,17 +324,27 @@ static int msm_device_put(struct snd_kcontrol *kcontrol,
 	int tx_freq = 0;
 	int rx_freq = 0;
 	u32 set_freq = 0;
-
+	
 	set = ucontrol->value.integer.value[0];
 	route_cfg.dev_id = ucontrol->id.numid - device_index;
+	
+	if (route_cfg.dev_id == 3) {
+	  // this is needed for sure
+	  pr_info("ksatta: msm_device_put() dev_id is 3(headset mic), changing to 10(speakerphone mic)");
+	  
+	  route_cfg.dev_id = 10;
+	}
+	
 	dev_info = audio_dev_ctrl_find_dev(route_cfg.dev_id);
+	
 	if (IS_ERR(dev_info)) {
 		MM_ERR("pass invalid dev_id\n");
 		rc = PTR_ERR(dev_info);
 		return rc;
 	}
-	MM_INFO("device %s set %d\n", dev_info->name, set);
-
+	
+	//pr_info("ksatta: msm_device_put() dev name:'%s' set:%d\n", dev_info->name, set);
+	
 	if (set) {
 		if (!dev_info->opened) {
 			set_freq = dev_info->sample_rate;
@@ -431,14 +450,12 @@ static int msm_route_put(struct snd_kcontrol *kcontrol,
 	int set = ucontrol->value.integer.value[2];
 	u32 session_mask = 0;
 	route_cfg.dev_id = ucontrol->value.integer.value[1];
-
+	
 	if (ucontrol->id.numid == 2)
 		route_cfg.stream_type =	AUDIO_ROUTE_STREAM_PLAYBACK;
 	else
 		route_cfg.stream_type =	AUDIO_ROUTE_STREAM_REC;
-
-	MM_DBG("route cfg %d %d type for popp %d set value %d\n",
-		route_cfg.dev_id, route_cfg.stream_type, session_id, set);
+	
 	dev_info = audio_dev_ctrl_find_dev(route_cfg.dev_id);
 
 	if (IS_ERR(dev_info)) {
@@ -546,9 +563,7 @@ static int msm_device_volume_put(struct snd_kcontrol *kcontrol,
 
 	int dev_id = ucontrol->value.integer.value[0];
 	int volume = ucontrol->value.integer.value[1];
-
-	MM_DBG("dev_id = %d, volume = %d\n", dev_id, volume);
-
+	
 	dev_info = audio_dev_ctrl_find_dev(dev_id);
 
 	if (IS_ERR(dev_info)) {
