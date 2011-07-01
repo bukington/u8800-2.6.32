@@ -79,8 +79,8 @@ static struct cpufreq_frequency_table freq_table[] = {
 	{ 0, 122880 },
 	{ 1, 245760 },
 	{ 2, 368640 },
-        { 3, 460800 },
-        { 4, 614400 },
+    { 3, 460800 },
+    { 4, 614400 },
 	{ 5, 768000 },
 	/* 806.4MHz is updated to 1017MHz at runtime for MSM8x55. */
 	{ 6, 806400 },
