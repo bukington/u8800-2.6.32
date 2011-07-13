@@ -152,8 +152,7 @@ static int __init nt35582_init(void)
 	    pinfo->clk_min = 192000000;
 	    pinfo->clk_max = 192000000;
         MDDI_LCD_DEBUG("%s: BYD LCD and Truly LCD,set MDDI_CLK=%d \n",__func__, pinfo->clk_rate);
-/* Disable software vsync to remove fps cap*/
-		pinfo->lcd.vsync_enable = false;
+		pinfo->lcd.vsync_enable = true;
 /* Reduce the fps,sync depend on the vsync signal*/
         pinfo->lcd.refx100 = 4000;
 		pinfo->lcd.v_back_porch = 0;
