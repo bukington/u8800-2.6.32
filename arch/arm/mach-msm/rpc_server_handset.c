@@ -1119,7 +1119,7 @@ static int __devinit hs_probe(struct platform_device *pdev)
     input_set_capability(ipdev, EV_KEY, KEY_PREVIOUSSONG);
     input_set_capability(ipdev, EV_KEY, KEY_NEXTSONG);
 #endif
-	input_set_capability(ipdev, EV_SW, SW_HEADPHONE_INSERT);
+//	input_set_capability(ipdev, EV_SW, SW_HEADPHONE_INSERT);
 	input_set_capability(ipdev, EV_KEY, KEY_POWER);
 	input_set_capability(ipdev, EV_KEY, KEY_END);
 
