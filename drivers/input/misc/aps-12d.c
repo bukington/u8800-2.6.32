@@ -60,7 +60,8 @@ static struct workqueue_struct *aps_wq;
 struct aps_data {
 	uint16_t addr;
 	struct i2c_client *client;
-	struct input_dev *input_dev;
+	struct input_dev *input_dev_light;
+	struct input_dev *input_dev_prox;
 	struct mutex  mlock;
 	struct hrtimer timer;
 	struct work_struct  work;	
@@ -68,8 +69,6 @@ struct aps_data {
 };
 
 static struct aps_data  *this_aps_data;
-
-extern struct input_dev *sensor_dev;
 
 static int aps_12d_delay = APS_12D_TIMRER;     /*1s*/
 static int aps_12d_timer_count = 0;
@@ -164,8 +163,8 @@ static int aps_12d_open(struct inode *inode, struct file *file)
 		
 
 		/* 0 is close, 1 is far */
-		input_report_abs(this_aps_data->input_dev, ABS_DISTANCE, 1);			
-		input_sync(this_aps_data->input_dev);
+		input_report_abs(this_aps_data->input_dev_prox, ABS_DISTANCE, 1);			
+		input_sync(this_aps_data->input_dev_prox);
 		PROXIMITY_DEBUG("%s:proximity = %d", __func__, 1);
 
 	}
@@ -445,8 +444,8 @@ static void aps_12d_work_func(struct work_struct *work)
 			{
 				/* report far event immediately */
 				/* 0 is close, 1 is far */
-				input_report_abs(aps->input_dev, ABS_DISTANCE, flag);
-				input_sync(aps->input_dev);
+				input_report_abs(aps->input_dev_prox, ABS_DISTANCE, flag);
+				input_sync(aps->input_dev_prox);
 			}
 			else if(last_event != flag)
 			{
@@ -458,8 +457,8 @@ static void aps_12d_work_func(struct work_struct *work)
 			{
 				PROXIMITY_DEBUG("report distance flag=%d \n", flag);
 				/* 0 is close, 1 is far */
-				input_report_abs(aps->input_dev, ABS_DISTANCE, flag);
-				input_sync(aps->input_dev);
+				input_report_abs(aps->input_dev_prox, ABS_DISTANCE, flag);
+				input_sync(aps->input_dev_prox);
 			}
 		}
 
@@ -506,14 +505,14 @@ static void aps_12d_work_func(struct work_struct *work)
 		{
 			/* report a invalid key first */
 			aps_first_read = 0;
-			input_report_abs(aps->input_dev, ABS_LIGHT, -1);
-			input_sync(aps->input_dev);
+			input_report_abs(aps->input_dev_light, ABS_MISC, -1);
+			input_sync(aps->input_dev_light);
 		}
 		else
 		{
 			PROXIMITY_DEBUG("report lux value=%d \n", lsensor_lux_table[als_level]);
-			input_report_abs(aps->input_dev, ABS_LIGHT, lsensor_lux_table[als_level]);
-			input_sync(aps->input_dev);
+			input_report_abs(aps->input_dev_light, ABS_MISC, lsensor_lux_table[als_level]);
+			input_sync(aps->input_dev_light);
 		}
 	}
 	
@@ -612,32 +611,49 @@ static int aps_12d_probe(
 		down_range_value[i] = (MAX_ADC_OUTPUT - high_threshold_value[i-1] - (MAX_ADC_OUTPUT / ADJUST_GATE)) / 4; 
 	}
 
-	if (sensor_dev == NULL) {
-		aps->input_dev = input_allocate_device();
-		if (aps->input_dev == NULL) {
-			ret = -ENOMEM;
-			PROXIMITY_DEBUG(KERN_ERR "aps_12d_probe: Failed to allocate input device\n");
-			goto err_input_dev_alloc_failed;
-		}
-		aps->input_dev->name = "sensors";
-		
-		aps->input_dev->id.bustype = BUS_I2C;
-		
-		input_set_drvdata(aps->input_dev, aps);
-		
-		ret = input_register_device(aps->input_dev);
-		if (ret) {
-			printk(KERN_ERR "aps_probe: Unable to register %s input device\n", aps->input_dev->name);
-			goto err_input_register_device_failed;
-		}
-		sensor_dev = aps->input_dev;
-	} else {
-		aps->input_dev = sensor_dev;
+	//light
+	aps->input_dev_light = input_allocate_device();
+	if (aps->input_dev_light == NULL) {
+		ret = -ENOMEM;
+		PROXIMITY_DEBUG(KERN_ERR "aps_12d_probe: Failed to allocate input device\n");
+		goto err_input_dev_light_alloc_failed;
+	}
+	aps->input_dev_light->name = "lightsensor-level";
+	
+	aps->input_dev_light->id.bustype = BUS_I2C;
+	
+	input_set_drvdata(aps->input_dev_light, aps);
+	
+	ret = input_register_device(aps->input_dev_light);
+	if (ret) {
+		printk(KERN_ERR "aps_probe: Unable to register %s input device\n", aps->input_dev_light->name);
+		goto err_input_light_register_device_failed;
 	}
 
-	set_bit(EV_ABS, aps->input_dev->evbit);
-	input_set_abs_params(aps->input_dev, ABS_LIGHT, 0, 10240, 0, 0);
-	input_set_abs_params(aps->input_dev, ABS_DISTANCE, 0, 1, 0, 0);
+	set_bit(EV_ABS, aps->input_dev_light->evbit);
+	input_set_abs_params(aps->input_dev_light, ABS_MISC, 0, 10240, 0, 0);
+
+	//prox
+	aps->input_dev_prox = input_allocate_device();
+	if (aps->input_dev_prox == NULL) {
+		ret = -ENOMEM;
+		PROXIMITY_DEBUG(KERN_ERR "aps_12d_probe: Failed to allocate input device\n");
+		goto err_input_dev_prox_alloc_failed;
+	}
+	aps->input_dev_prox->name = "proximity";
+	
+	aps->input_dev_prox->id.bustype = BUS_I2C;
+	
+	input_set_drvdata(aps->input_dev_prox, aps);
+	
+	ret = input_register_device(aps->input_dev_prox);
+	if (ret) {
+		printk(KERN_ERR "aps_probe: Unable to register %s input device\n", aps->input_dev_prox->name);
+		goto err_input_prox_register_device_failed;
+	}
+
+	set_bit(EV_ABS, aps->input_dev_prox->evbit);
+	input_set_abs_params(aps->input_dev_prox, ABS_DISTANCE, 0, 1, 0, 0);
 
 	ret = misc_register(&light_device);
 	if (ret) {
@@ -687,9 +703,12 @@ err_create_workqueue_failed:
 err_proximity_misc_device_register_failed:
 	misc_deregister(&light_device);
 err_light_misc_device_register_failed:
-err_input_register_device_failed:
-	input_free_device(aps->input_dev);
-err_input_dev_alloc_failed:
+err_input_prox_register_device_failed:
+	input_free_device(aps->input_dev_prox);
+err_input_light_register_device_failed:
+	input_free_device(aps->input_dev_light);
+err_input_dev_light_alloc_failed:
+err_input_dev_prox_alloc_failed:
 err_detect_failed:
 	kfree(aps);
 err_alloc_data_failed:
@@ -713,7 +732,8 @@ static int aps_12d_remove(struct i2c_client *client)
 	misc_deregister(&light_device);
 	misc_deregister(&proximity_device);
 
-	input_unregister_device(aps->input_dev);
+	input_unregister_device(aps->input_dev_prox);
+	input_unregister_device(aps->input_dev_light);
 
 	kfree(aps);
 	return 0;
